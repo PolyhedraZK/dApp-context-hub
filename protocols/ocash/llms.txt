@@ -2,6 +2,8 @@
 
 > TypeScript ZKP SDK for privacy-preserving token operations via UTXO model and zk-SNARK proofs.
 
+Ref: [GitHub](https://github.com/PolyhedraZK/ocash-sdk) | [npm](https://www.npmjs.com/package/@ocash/sdk) | [Docs](https://docs.o.cash)
+
 ## Install
 
 ```bash
@@ -39,6 +41,8 @@ await sdk.wallet.close();                                  // Release keys, flus
 
 ## SDK Modules
 
+Ref: [src/index.ts — createSdk factory](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/index.ts)
+
 sdk.core      — WASM & circuit initialization (ready, reset)
 sdk.keys      — BabyJubjub key derivation (deriveKeyPair, userPkToAddress, addressToUserPk)
 sdk.crypto    — Commitments, nullifiers, memo encryption (commitment, nullifier, createRecordOpening)
@@ -53,6 +57,8 @@ sdk.tx        — Relayer request builder (buildTransferCalldata, buildWithdrawC
 sdk.ops       — End-to-end orchestration (prepareTransfer, prepareWithdraw, prepareDeposit, submitRelayerRequest)
 
 ## Configuration
+
+Ref: [src/types.ts — OCashSdkConfig](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/types.ts)
 
 ```ts
 interface OCashSdkConfig {
@@ -85,6 +91,8 @@ interface TokenMetadata {
 ```
 
 ## Transfer
+
+Ref: [src/ops/ops.ts — prepareTransfer](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/ops/ops.ts)
 
 ```ts
 const keyPair = sdk.keys.deriveKeyPair(seed, nonce);
@@ -154,6 +162,8 @@ const result = await sdk.ops.submitDeposit({
 
 ## Key Management
 
+Ref: [src/crypto/keyManager.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/crypto/keyManager.ts)
+
 ```ts
 // Derive key pair (seed must be >= 16 characters)
 const keyPair = sdk.keys.deriveKeyPair('my-secret-seed', 'optional-nonce');
@@ -171,6 +181,8 @@ const pk = sdk.keys.addressToUserPk(address);
 ```
 
 ## Sync
+
+Ref: [src/sync/syncEngine.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/sync/syncEngine.ts)
 
 ```ts
 // One-shot sync
@@ -191,6 +203,8 @@ const status = sdk.sync.getStatus();
 
 ## Storage Adapters
 
+Ref: [src/store/](https://github.com/PolyhedraZK/ocash-sdk/tree/main/src/store)
+
 ```ts
 import { MemoryStore } from '@ocash/sdk';
 import { IndexedDbStore } from '@ocash/sdk/browser';
@@ -210,6 +224,8 @@ Required interface methods:
 
 ## Events
 
+Ref: [src/types.ts — SdkEvent](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/types.ts)
+
 All events via `onEvent` callback. Union type `SdkEvent`:
 
 - core:ready — { assetsVersion, durationMs }
@@ -225,6 +241,8 @@ All events via `onEvent` callback. Union type `SdkEvent`:
 Error codes: CONFIG | ASSETS | STORAGE | SYNC | CRYPTO | MERKLE | WITNESS | PROOF | RELAYER
 
 ## Key Types
+
+Ref: [src/types.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/types.ts)
 
 ```ts
 type Hex = `0x${string}`;
@@ -252,6 +270,8 @@ interface RelayerRequest { kind: 'relayer'; method: 'POST'; path: string; body: 
 
 ## Cryptography
 
+Ref: [src/crypto/cryptoToolkit.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/crypto/cryptoToolkit.ts) (Poseidon2, commitment, nullifier); [src/memo/memoKit.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/memo/memoKit.ts) (ECDH + NaCl encryption)
+
 - Curve: BabyJubjub (twisted Edwards over BN254 scalar field)
 - Hash: Poseidon2 (commitments, nullifiers, Merkle nodes)
 - Encryption: ECDH + NaCl XSalsa20-Poly1305 (memo encryption)
@@ -262,7 +282,9 @@ interface RelayerRequest { kind: 'relayer'; method: 'POST'; path: string; body: 
 
 ## Contract ABI
 
-`App_ABI` is the complete Foundry-compiled ABI of the OCash contract (95 entries: 49 functions, 17 events, 29 errors). All contract functions (`deposit`, `transfer`, `withdraw`, `freeze`) are public — the ZK proof IS the authorization.
+Ref: [src/abi/Ocash.json](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/abi/Ocash.json) — Foundry-compiled ABI (95 entries: 49 functions, 17 events, 29 errors)
+
+`App_ABI` is the complete Foundry-compiled ABI of the OCash contract. All contract functions (`deposit`, `transfer`, `withdraw`, `freeze`) are public — the ZK proof IS the authorization.
 
 ```ts
 import { App_ABI } from '@ocash/sdk';
@@ -302,3 +324,33 @@ CryptoToolkit.createRecordOpening({ assetId, amount, userPk })
 Utils.calcDepositFee(amount, feeBps)                 // Protocol fee calculation
 Utils.randomBytes32Bigint()                          // Cryptographic random bigint
 ```
+
+## References
+
+### Repository and Package
+
+- [PolyhedraZK/ocash-sdk](https://github.com/PolyhedraZK/ocash-sdk) — SDK source repository
+- [@ocash/sdk on npm](https://www.npmjs.com/package/@ocash/sdk) — published package
+- [OCash Docs](https://docs.o.cash) — official documentation
+
+### Source Files
+
+- [src/index.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/index.ts) — createSdk factory, public exports
+- [src/types.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/types.ts) — all type definitions (~850 lines)
+- [src/abi/Ocash.json](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/abi/Ocash.json) — complete contract ABI (95 entries)
+- [src/abi/app.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/abi/app.ts) — App_ABI export
+- [src/ops/ops.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/ops/ops.ts) — prepareTransfer, prepareWithdraw, prepareDeposit
+- [src/planner/](https://github.com/PolyhedraZK/ocash-sdk/tree/main/src/planner) — coin selection, fee estimation
+- [src/crypto/cryptoToolkit.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/crypto/cryptoToolkit.ts) — Poseidon2, commitment, nullifier
+- [src/crypto/keyManager.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/crypto/keyManager.ts) — BabyJubjub key derivation
+- [src/memo/memoKit.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/memo/memoKit.ts) — ECDH + NaCl memo encryption
+- [src/sync/syncEngine.ts](https://github.com/PolyhedraZK/ocash-sdk/blob/main/src/sync/syncEngine.ts) — memo/nullifier/Merkle sync
+- [src/wallet/](https://github.com/PolyhedraZK/ocash-sdk/tree/main/src/wallet) — session, UTXO management
+- [src/store/](https://github.com/PolyhedraZK/ocash-sdk/tree/main/src/store) — MemoryStore, FileStore, IndexedDbStore, KeyValueStore
+
+### Dependencies
+
+- [viem](https://viem.sh/) — Ethereum client (TypeScript)
+- [@noble/curves](https://github.com/paulmillr/noble-curves) — BabyJubjub elliptic curve
+- [@noble/hashes](https://github.com/paulmillr/noble-hashes) — HKDF-SHA256 key derivation
+- [tweetnacl](https://github.com/nicola/tweetnacl-es) — XSalsa20-Poly1305 (memo encryption)

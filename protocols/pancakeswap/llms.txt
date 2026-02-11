@@ -6,6 +6,8 @@
 
 PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1.1 expired April 2023). Concentrated liquidity, tick-based architecture, and periphery patterns are all derived from Uniswap V3.
 
+Ref: [V3 FAQ — differences from Uniswap](https://developer.pancakeswap.finance/contracts/v3/faq)
+
 ### Key Differences from Uniswap V3
 
 | Aspect | PancakeSwap V3 | Uniswap V3 |
@@ -21,6 +23,8 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 
 ## Fee Tiers
 
+Ref: [PancakeV3Factory docs](https://developer.pancakeswap.finance/contracts/v3/pancakev3factory) — `feeAmountTickSpacing` mapping
+
 | Fee (bps) | Raw uint24 | Tick Spacing |
 |---|---|---|
 | 0.01% | 100 | 1 |
@@ -29,6 +33,8 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 | 1.00% | 10000 | 200 |
 
 ## Deployed Contract Addresses
+
+Ref: [V3 Contract Addresses](https://developer.pancakeswap.finance/contracts/v3/addresses)
 
 ### Core (same address on BSC, ETH, Arbitrum, Base, Linea, opBNB, Monad via CREATE2)
 
@@ -48,6 +54,8 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 
 ### SmartRouter (recommended, V2+V3+StableSwap)
 
+Ref: [SmartRouterV3 docs](https://developer.pancakeswap.finance/contracts/v3/smartrouter)
+
 | Chain | Address |
 |---|---|
 | BSC, Ethereum | `0x13f4EA83D0bd40E75C8222255bc855a974568Dd4` |
@@ -56,6 +64,8 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 | zkSync | `0xf8b59f3c3Ab33200ec80a8A58b2aA5F5D2a8944C` |
 
 ### Universal Router
+
+Ref: [Universal Router Addresses](https://developer.pancakeswap.finance/contracts/universal-router/addresses)
 
 | Chain | Address |
 |---|---|
@@ -66,6 +76,8 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 | Sepolia (testnet) | `0x55D32fa7Da7290838347bc97cb7fAD4992672255` |
 
 ### Permit2
+
+Ref: [Permit2 Addresses](https://developer.pancakeswap.finance/contracts/permit2/addresses)
 
 | Scope | Address |
 |---|---|
@@ -83,15 +95,20 @@ PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1
 
 ### Constants
 
+Ref: Solidity — [PoolAddress.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/libraries/PoolAddress.sol); TypeScript — [v3-sdk/constants.ts](https://github.com/pancakeswap/pancake-frontend/blob/develop/packages/v3-sdk/src/constants.ts)
+
 ```
 FACTORY_ADDRESS      = 0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865
 DEPLOYER_ADDRESS     = 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9
 POOL_INIT_CODE_HASH  = 0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2
+POOL_INIT_CODE_HASH (zkSync) = 0x01001487a7c45b21c52a0bc0558bf48d897d14792f1d0cc82733c8271d069178
 ```
 
 ## Contract Interfaces (Solidity)
 
 ### SmartRouter — IV3SwapRouter (recommended)
+
+Ref: [IV3SwapRouter.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/router/contracts/interfaces/IV3SwapRouter.sol)
 
 No `deadline` field in structs — deadline enforced via `multicall(uint256 deadline, bytes[] data)`.
 
@@ -143,6 +160,8 @@ interface IV3SwapRouter {
 
 ### Periphery SwapRouter — ISwapRouter (legacy, has deadline)
 
+Ref: [ISwapRouter.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/interfaces/ISwapRouter.sol)
+
 ```solidity
 interface ISwapRouter {
     struct ExactInputSingleParams {
@@ -173,6 +192,8 @@ function multicall(bytes32 previousBlockhash, bytes[] calldata data) external pa
 ```
 
 ### QuoterV2
+
+Ref: [IQuoterV2.sol (periphery)](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/interfaces/IQuoterV2.sol)
 
 Call via `eth_call` only — these revert internally to return results.
 
@@ -208,6 +229,8 @@ interface IQuoterV2 {
 
 ### PancakeV3Pool
 
+Ref: [IPancakeV3Pool.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-core/contracts/interfaces/IPancakeV3Pool.sol) — aggregates IPancakeV3PoolImmutables, IPancakeV3PoolState, IPancakeV3PoolActions, etc.
+
 ```solidity
 interface IPancakeV3Pool {
     // Immutables
@@ -242,6 +265,8 @@ interface IPancakeV3Pool {
 
 ### PancakeV3Factory
 
+Ref: [IPancakeV3Factory.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-core/contracts/interfaces/IPancakeV3Factory.sol)
+
 ```solidity
 interface IPancakeV3Factory {
     function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
@@ -260,22 +285,26 @@ interface IPancakeV3Factory {
 
 ### Packages
 
+Ref: npm links below. Source: [pancake-frontend monorepo](https://github.com/pancakeswap/pancake-frontend) `packages/` directory.
+
 ```bash
 pnpm add @pancakeswap/sdk @pancakeswap/smart-router @pancakeswap/v3-sdk @pancakeswap/tokens @pancakeswap/chains viem
 ```
 
-| Package | Version | Purpose |
+| Package | Purpose | npm |
 |---|---|---|
-| `@pancakeswap/sdk` | 5.8.17 | Umbrella SDK (re-exports core + v2 + evm) |
-| `@pancakeswap/v3-sdk` | 3.9.7 | V3 Pool, Trade, Route, Position, SwapRouter |
-| `@pancakeswap/smart-router` | 7.5.3 | Best route finder across V2+V3+Stable |
-| `@pancakeswap/swap-sdk-core` | 1.5.1 | Token, CurrencyAmount, Fraction, Percent |
-| `@pancakeswap/chains` | 0.5.0 | ChainId enum |
-| `@pancakeswap/tokens` | — | Pre-built token lists (bscTokens, ethereumTokens) |
-| `@pancakeswap/universal-router-sdk` | ~1.4.0 | Universal Router calldata encoding |
-| `@pancakeswap/multicall` | 3.7.4 | Batched RPC calls |
+| `@pancakeswap/sdk` | Umbrella SDK (re-exports core + v2 + evm) | [npm](https://www.npmjs.com/package/@pancakeswap/sdk) |
+| `@pancakeswap/v3-sdk` | V3 Pool, Trade, Route, Position, SwapRouter | [npm](https://www.npmjs.com/package/@pancakeswap/v3-sdk) |
+| `@pancakeswap/smart-router` | Best route finder across V2+V3+Stable | [npm](https://www.npmjs.com/package/@pancakeswap/smart-router) |
+| `@pancakeswap/swap-sdk-core` | Token, CurrencyAmount, Fraction, Percent | [npm](https://www.npmjs.com/package/@pancakeswap/swap-sdk-core) |
+| `@pancakeswap/chains` | ChainId enum | [npm](https://www.npmjs.com/package/@pancakeswap/chains) |
+| `@pancakeswap/tokens` | Pre-built token lists (bscTokens, ethereumTokens) | [npm](https://www.npmjs.com/package/@pancakeswap/tokens) |
+| `@pancakeswap/universal-router-sdk` | Universal Router calldata encoding | [npm](https://www.npmjs.com/package/@pancakeswap/universal-router-sdk) |
+| `@pancakeswap/multicall` | Batched RPC calls | [npm](https://www.npmjs.com/package/@pancakeswap/multicall) |
 
 ### Supported Chains
+
+Ref: [ChainId source](https://github.com/pancakeswap/pancake-frontend/blob/develop/packages/chains/src/chainId.ts)
 
 ```typescript
 enum ChainId {
@@ -289,6 +318,8 @@ enum ChainId {
 
 ### V3 SDK — FeeAmount
 
+Ref: [v3-sdk/constants.ts](https://github.com/pancakeswap/pancake-frontend/blob/develop/packages/v3-sdk/src/constants.ts)
+
 ```typescript
 enum FeeAmount {
   LOWEST = 100,    // 0.01%, tick spacing 1
@@ -299,6 +330,8 @@ enum FeeAmount {
 ```
 
 ### SmartRouter — Find Best Trade + Build Calldata
+
+Ref: [smart-router-example](https://github.com/pancakeswap/smart-router-example)
 
 ```typescript
 import { Native, ChainId, CurrencyAmount, TradeType, Percent } from '@pancakeswap/sdk'
@@ -470,16 +503,35 @@ exactOutput: tokenOut (20 bytes) + fee (3 bytes) + tokenIn (20 bytes) (reversed)
 - **Callback name**: `pancakeV3SwapCallback` not `uniswapV3SwapCallback`.
 - **Sepolia**: V3 core/periphery not officially deployed on Sepolia. Use BSC Testnet or Goerli for V3 testing. Universal Router is on Sepolia.
 
-## GitHub Repos
+## References
+
+### Repositories
 
 - [pancakeswap/pancake-v3-contracts](https://github.com/pancakeswap/pancake-v3-contracts) — V3 core, periphery, router, LM pool, MasterChefV3
 - [pancakeswap/pancake-frontend](https://github.com/pancakeswap/pancake-frontend) — Frontend monorepo (all SDK packages under `packages/`)
 - [pancakeswap/smart-router-example](https://github.com/pancakeswap/smart-router-example) — Official routing example code
 
-## Sources
+### Contract Source Files
+
+- [IV3SwapRouter.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/router/contracts/interfaces/IV3SwapRouter.sol) — SmartRouter swap interface
+- [ISwapRouter.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/interfaces/ISwapRouter.sol) — Periphery swap interface (legacy)
+- [IPancakeV3Pool.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-core/contracts/interfaces/IPancakeV3Pool.sol) — Pool interface
+- [IPancakeV3Factory.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-core/contracts/interfaces/IPancakeV3Factory.sol) — Factory interface
+- [IQuoterV2.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/interfaces/IQuoterV2.sol) — Quoter interface
+- [PoolAddress.sol](https://github.com/pancakeswap/pancake-v3-contracts/blob/main/projects/v3-periphery/contracts/libraries/PoolAddress.sol) — POOL_INIT_CODE_HASH
+
+### SDK Source Files
+
+- [v3-sdk/constants.ts](https://github.com/pancakeswap/pancake-frontend/blob/develop/packages/v3-sdk/src/constants.ts) — FeeAmount enum, POOL_INIT_CODE_HASHES
+- [chains/chainId.ts](https://github.com/pancakeswap/pancake-frontend/blob/develop/packages/chains/src/chainId.ts) — ChainId enum
+
+### Documentation
 
 - [PancakeSwap Developer Docs](https://developer.pancakeswap.finance/)
 - [V3 Contract Addresses](https://developer.pancakeswap.finance/contracts/v3/addresses)
 - [Universal Router Addresses](https://developer.pancakeswap.finance/contracts/universal-router/addresses)
-- [V3 FAQ (differences from Uniswap)](https://developer.pancakeswap.finance/contracts/v3/faq)
-- [SmartRouterV3 Docs](https://developer.pancakeswap.finance/contracts/v3/smartrouter)
+- [Permit2 Addresses](https://developer.pancakeswap.finance/contracts/permit2/addresses)
+- [V3 FAQ](https://developer.pancakeswap.finance/contracts/v3/faq) — differences from Uniswap V3
+- [SmartRouterV3](https://developer.pancakeswap.finance/contracts/v3/smartrouter)
+- [PancakeV3Factory](https://developer.pancakeswap.finance/contracts/v3/pancakev3factory) — fee tier details
+- [PancakeV3Pool](https://developer.pancakeswap.finance/contracts/v3/pancakev3pool)
