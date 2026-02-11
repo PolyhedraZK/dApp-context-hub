@@ -1,0 +1,485 @@
+# PancakeSwap V3 — AI Context Reference
+
+> For AI agents building integrations with PancakeSwap V3. Covers contracts, SDK, ABIs, addresses, and code examples.
+
+## Overview
+
+PancakeSwap V3 is a direct fork of Uniswap V3 (released after Uniswap V3's BSL 1.1 expired April 2023). Concentrated liquidity, tick-based architecture, and periphery patterns are all derived from Uniswap V3.
+
+### Key Differences from Uniswap V3
+
+| Aspect | PancakeSwap V3 | Uniswap V3 |
+|---|---|---|
+| Default fee tier | **0.25%** (2500, tick spacing 50) | **0.30%** (3000, tick spacing 60) |
+| Swap callback | `pancakeV3SwapCallback` | `uniswapV3SwapCallback` |
+| Contract names | `PancakeV3Factory`, `PancakeV3Pool` | `UniswapV3Factory`, `UniswapV3Pool` |
+| Pool deployer | Separate `PancakeV3PoolDeployer` | Factory creates pools directly |
+| `slot0.feeProtocol` type | `uint32` | `uint8` |
+| Router architecture | SmartRouter (V2 + V3 + StableSwap) | Separate V2/V3 routers |
+| Fee tiers | 100, 500, **2500**, 10000 | 100, 500, **3000**, 10000 |
+| CAKE farming | LMPool + MasterChefV3 | Not present |
+
+## Fee Tiers
+
+| Fee (bps) | Raw uint24 | Tick Spacing |
+|---|---|---|
+| 0.01% | 100 | 1 |
+| 0.05% | 500 | 10 |
+| 0.25% | 2500 | 50 |
+| 1.00% | 10000 | 200 |
+
+## Deployed Contract Addresses
+
+### Core (same address on BSC, ETH, Arbitrum, Base, Linea, opBNB, Monad via CREATE2)
+
+| Contract | Address |
+|---|---|
+| PancakeV3Factory | `0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865` |
+| PancakeV3PoolDeployer | `0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9` |
+
+### Periphery (same address on BSC, ETH, Arbitrum, Base, Linea, opBNB, Monad)
+
+| Contract | Address |
+|---|---|
+| SwapRouter (v3-only, has deadline) | `0x1b81D678ffb9C0263b24A97847620C99d213eB14` |
+| NonfungiblePositionManager | `0x46A15B0b27311cedF172AB29E4f4766fbE7F4364` |
+| QuoterV2 | `0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997` |
+| TickLens | `0x9a489505a00cE272eAa5e07Dba6491314CaE3796` |
+
+### SmartRouter (recommended, V2+V3+StableSwap)
+
+| Chain | Address |
+|---|---|
+| BSC, Ethereum | `0x13f4EA83D0bd40E75C8222255bc855a974568Dd4` |
+| Arbitrum | `0x32226588378236Fd0c7c4053999F88aC0e5cAc77` |
+| Base, Linea, opBNB, zkEVM | `0x678Aa4bF4E210cf2166753e054d5b7c31cc7fa86` |
+| zkSync | `0xf8b59f3c3Ab33200ec80a8A58b2aA5F5D2a8944C` |
+
+### Universal Router
+
+| Chain | Address |
+|---|---|
+| BSC | `0x1A0A18AC4BECDDbd6389559687d1A73d8927E416` |
+| Ethereum | `0x65b382653f7C31bC0Af67f188122035461ec9C76` |
+| Arbitrum, Base, Linea | `0xFE6508f0015C778Bdcc1fB5465bA5ebE224C9912` |
+| opBNB, zkEVM | `0xB89a6778D1efE7a5b7096757A21b810CC2886fa1` |
+| Sepolia (testnet) | `0x55D32fa7Da7290838347bc97cb7fAD4992672255` |
+
+### Permit2
+
+| Scope | Address |
+|---|---|
+| All chains (except zkSync) | `0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768` |
+| zkSync | `0x686FD50007EaA636F01154d660b96110B6bFe351` |
+
+### Testnet (Goerli / BSC Testnet)
+
+| Contract | Address |
+|---|---|
+| SwapRouter | `0x1b81D678ffb9C0263b24A97847620C99d213eB14` |
+| SmartRouter | `0x9a489505a00cE272eAa5e07Dba6491314CaE3796` |
+| QuoterV2 | `0xbC203d7f83677c7ed3F7acEc959963E7F4ECC5C2` |
+| NonfungiblePositionManager | `0x427bF5b37357632377eCbEC9de3626C71A5396c1` |
+
+### Constants
+
+```
+FACTORY_ADDRESS      = 0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865
+DEPLOYER_ADDRESS     = 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9
+POOL_INIT_CODE_HASH  = 0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2
+```
+
+## Contract Interfaces (Solidity)
+
+### SmartRouter — IV3SwapRouter (recommended)
+
+No `deadline` field in structs — deadline enforced via `multicall(uint256 deadline, bytes[] data)`.
+
+```solidity
+interface IV3SwapRouter {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+    function exactInputSingle(ExactInputSingleParams calldata params)
+        external payable returns (uint256 amountOut);
+
+    struct ExactInputParams {
+        bytes path;              // abi.encodePacked(tokenA, fee, tokenB, fee, tokenC)
+        address recipient;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+    }
+    function exactInput(ExactInputParams calldata params)
+        external payable returns (uint256 amountOut);
+
+    struct ExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+        uint160 sqrtPriceLimitX96;
+    }
+    function exactOutputSingle(ExactOutputSingleParams calldata params)
+        external payable returns (uint256 amountIn);
+
+    struct ExactOutputParams {
+        bytes path;              // reversed: abi.encodePacked(tokenC, fee, tokenB, fee, tokenA)
+        address recipient;
+        uint256 amountOut;
+        uint256 amountInMaximum;
+    }
+    function exactOutput(ExactOutputParams calldata params)
+        external payable returns (uint256 amountIn);
+}
+```
+
+### Periphery SwapRouter — ISwapRouter (legacy, has deadline)
+
+```solidity
+interface ISwapRouter {
+    struct ExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;           // <-- only in periphery router
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+    }
+    function exactInputSingle(ExactInputSingleParams calldata params)
+        external payable returns (uint256 amountOut);
+    // ... same pattern for exactInput, exactOutputSingle, exactOutput with deadline
+}
+```
+
+### Multicall
+
+```solidity
+// Base
+function multicall(bytes[] calldata data) external payable returns (bytes[] memory);
+// With deadline (SmartRouter — use this)
+function multicall(uint256 deadline, bytes[] calldata data) external payable returns (bytes[] memory);
+// With previous blockhash
+function multicall(bytes32 previousBlockhash, bytes[] calldata data) external payable returns (bytes[] memory);
+```
+
+### QuoterV2
+
+Call via `eth_call` only — these revert internally to return results.
+
+```solidity
+interface IQuoterV2 {
+    struct QuoteExactInputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amountIn;
+        uint24 fee;
+        uint160 sqrtPriceLimitX96;
+    }
+    function quoteExactInputSingle(QuoteExactInputSingleParams memory params)
+        external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
+
+    function quoteExactInput(bytes memory path, uint256 amountIn)
+        external returns (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint32[] memory initializedTicksCrossedList, uint256 gasEstimate);
+
+    struct QuoteExactOutputSingleParams {
+        address tokenIn;
+        address tokenOut;
+        uint256 amount;
+        uint24 fee;
+        uint160 sqrtPriceLimitX96;
+    }
+    function quoteExactOutputSingle(QuoteExactOutputSingleParams memory params)
+        external returns (uint256 amountIn, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate);
+
+    function quoteExactOutput(bytes memory path, uint256 amountOut)
+        external returns (uint256 amountIn, uint160[] memory sqrtPriceX96AfterList, uint32[] memory initializedTicksCrossedList, uint256 gasEstimate);
+}
+```
+
+### PancakeV3Pool
+
+```solidity
+interface IPancakeV3Pool {
+    // Immutables
+    function factory() external view returns (address);
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+    function fee() external view returns (uint24);
+    function tickSpacing() external view returns (int24);
+    function maxLiquidityPerTick() external view returns (uint128);
+
+    // State
+    function slot0() external view returns (
+        uint160 sqrtPriceX96, int24 tick,
+        uint16 observationIndex, uint16 observationCardinality,
+        uint16 observationCardinalityNext,
+        uint32 feeProtocol,    // uint32 not uint8
+        bool unlocked
+    );
+    function liquidity() external view returns (uint128);
+    function feeGrowthGlobal0X128() external view returns (uint256);
+    function feeGrowthGlobal1X128() external view returns (uint256);
+    function protocolFees() external view returns (uint128 token0, uint128 token1);
+    function ticks(int24 tick) external view returns (
+        uint128 liquidityGross, int128 liquidityNet,
+        uint256 feeGrowthOutside0X128, uint256 feeGrowthOutside1X128,
+        int56 tickCumulativeOutside, uint160 secondsPerLiquidityOutsideX128,
+        uint32 secondsOutside, bool initialized
+    );
+    function tickBitmap(int16 wordPosition) external view returns (uint256);
+}
+```
+
+### PancakeV3Factory
+
+```solidity
+interface IPancakeV3Factory {
+    function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool);
+    function feeAmountTickSpacing(uint24 fee) external view returns (int24);
+    function createPool(address tokenA, address tokenB, uint24 fee) external returns (address pool);
+    // PancakeSwap-specific
+    function feeAmountTickSpacingExtraInfo(uint24 fee) external view returns (bool whitelistRequested, bool enabled);
+    function setFeeProtocol(address pool, uint32 feeProtocol0, uint32 feeProtocol1) external;
+    function collectProtocol(address pool, address recipient, uint128 amount0Requested, uint128 amount1Requested)
+        external returns (uint128 amount0, uint128 amount1);
+    function setLmPool(address pool, address lmPool) external;
+}
+```
+
+## TypeScript SDK
+
+### Packages
+
+```bash
+pnpm add @pancakeswap/sdk @pancakeswap/smart-router @pancakeswap/v3-sdk @pancakeswap/tokens @pancakeswap/chains viem
+```
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@pancakeswap/sdk` | 5.8.17 | Umbrella SDK (re-exports core + v2 + evm) |
+| `@pancakeswap/v3-sdk` | 3.9.7 | V3 Pool, Trade, Route, Position, SwapRouter |
+| `@pancakeswap/smart-router` | 7.5.3 | Best route finder across V2+V3+Stable |
+| `@pancakeswap/swap-sdk-core` | 1.5.1 | Token, CurrencyAmount, Fraction, Percent |
+| `@pancakeswap/chains` | 0.5.0 | ChainId enum |
+| `@pancakeswap/tokens` | — | Pre-built token lists (bscTokens, ethereumTokens) |
+| `@pancakeswap/universal-router-sdk` | ~1.4.0 | Universal Router calldata encoding |
+| `@pancakeswap/multicall` | 3.7.4 | Batched RPC calls |
+
+### Supported Chains
+
+```typescript
+enum ChainId {
+  ETHEREUM = 1, BSC = 56, ZKSYNC = 324, OPBNB = 204,
+  ARBITRUM_ONE = 42161, LINEA = 59144, BASE = 8453, MONAD_MAINNET = 143,
+  // Testnets
+  SEPOLIA = 11155111, BSC_TESTNET = 97, GOERLI = 5,
+  ARBITRUM_SEPOLIA = 421614, BASE_SEPOLIA = 84532, MONAD_TESTNET = 10143,
+}
+```
+
+### V3 SDK — FeeAmount
+
+```typescript
+enum FeeAmount {
+  LOWEST = 100,    // 0.01%, tick spacing 1
+  LOW    = 500,    // 0.05%, tick spacing 10
+  MEDIUM = 2500,   // 0.25%, tick spacing 50
+  HIGH   = 10000,  // 1.00%, tick spacing 200
+}
+```
+
+### SmartRouter — Find Best Trade + Build Calldata
+
+```typescript
+import { Native, ChainId, CurrencyAmount, TradeType, Percent } from '@pancakeswap/sdk'
+import { SmartRouter, SwapRouter, SMART_ROUTER_ADDRESSES } from '@pancakeswap/smart-router'
+import { bscTokens } from '@pancakeswap/tokens'
+import { createPublicClient, hexToBigInt, http } from 'viem'
+import { bsc } from 'viem/chains'
+
+const chainId = ChainId.BSC
+const publicClient = createPublicClient({
+  chain: bsc,
+  transport: http('https://bsc-dataseed1.binance.org'),
+  batch: { multicall: { batchSize: 1024 * 200 } },
+})
+
+const quoteProvider = SmartRouter.createQuoteProvider({
+  onChainProvider: () => publicClient,
+})
+
+// 1. Discover candidate pools
+const [v2Pools, v3Pools] = await Promise.all([
+  SmartRouter.getV2CandidatePools({
+    onChainProvider: () => publicClient,
+    currencyA: Native.onChain(chainId),
+    currencyB: bscTokens.usdt,
+  }),
+  SmartRouter.getV3CandidatePools({
+    onChainProvider: () => publicClient,
+    currencyA: Native.onChain(chainId),
+    currencyB: bscTokens.usdt,
+    subgraphFallback: false,
+  }),
+])
+
+// 2. Find best trade
+const amount = CurrencyAmount.fromRawAmount(Native.onChain(chainId), 10n ** 16n)
+const trade = await SmartRouter.getBestTrade(amount, bscTokens.usdt, TradeType.EXACT_INPUT, {
+  gasPriceWei: () => publicClient.getGasPrice(),
+  maxHops: 2,
+  maxSplits: 2,
+  poolProvider: SmartRouter.createStaticPoolProvider([...v2Pools, ...v3Pools]),
+  quoteProvider,
+  quoterOptimization: true,
+})
+
+// 3. Build calldata
+const { value, calldata } = SwapRouter.swapCallParameters(trade, {
+  recipient: '0x...',
+  slippageTolerance: new Percent(1),  // 1%
+})
+
+const tx = {
+  to: SMART_ROUTER_ADDRESSES[chainId],
+  data: calldata,
+  value: hexToBigInt(value),
+}
+```
+
+### V3 Pool — Direct Read
+
+```typescript
+import { Pool, FeeAmount } from '@pancakeswap/v3-sdk'
+import { Token, CurrencyAmount } from '@pancakeswap/sdk'
+import { createPublicClient, getContract, http } from 'viem'
+
+const WBNB = new Token(56, '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', 18, 'WBNB')
+const USDT = new Token(56, '0x55d398326f99059fF775485246999027B3197955', 18, 'USDT')
+
+const poolAddress = Pool.getAddress(WBNB, USDT, FeeAmount.MEDIUM)
+
+// Read on-chain state
+const [slot0, liquidity] = await Promise.all([
+  poolContract.read.slot0(),
+  poolContract.read.liquidity(),
+])
+
+const pool = new Pool(
+  WBNB, USDT, FeeAmount.MEDIUM,
+  slot0[0].toString(),   // sqrtPriceX96
+  liquidity.toString(),
+  Number(slot0[1]),      // tick
+)
+```
+
+## viem ABI Snippets (TypeScript)
+
+For direct contract calls without the SDK:
+
+```typescript
+const smartRouterAbi = [
+  {
+    type: 'function', name: 'exactInputSingle', stateMutability: 'payable',
+    inputs: [{
+      name: 'params', type: 'tuple', components: [
+        { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' },
+        { name: 'fee', type: 'uint24' }, { name: 'recipient', type: 'address' },
+        { name: 'amountIn', type: 'uint256' }, { name: 'amountOutMinimum', type: 'uint256' },
+        { name: 'sqrtPriceLimitX96', type: 'uint160' },
+      ],
+    }],
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+  },
+  {
+    type: 'function', name: 'multicall', stateMutability: 'payable',
+    inputs: [{ name: 'deadline', type: 'uint256' }, { name: 'data', type: 'bytes[]' }],
+    outputs: [{ name: 'results', type: 'bytes[]' }],
+  },
+] as const;
+
+const quoterV2Abi = [
+  {
+    type: 'function', name: 'quoteExactInputSingle', stateMutability: 'nonpayable',
+    inputs: [{
+      name: 'params', type: 'tuple', components: [
+        { name: 'tokenIn', type: 'address' }, { name: 'tokenOut', type: 'address' },
+        { name: 'amountIn', type: 'uint256' }, { name: 'fee', type: 'uint24' },
+        { name: 'sqrtPriceLimitX96', type: 'uint160' },
+      ],
+    }],
+    outputs: [
+      { name: 'amountOut', type: 'uint256' }, { name: 'sqrtPriceX96After', type: 'uint160' },
+      { name: 'initializedTicksCrossed', type: 'uint32' }, { name: 'gasEstimate', type: 'uint256' },
+    ],
+  },
+] as const;
+
+const poolAbi = [
+  {
+    type: 'function', name: 'slot0', stateMutability: 'view', inputs: [],
+    outputs: [
+      { name: 'sqrtPriceX96', type: 'uint160' }, { name: 'tick', type: 'int24' },
+      { name: 'observationIndex', type: 'uint16' }, { name: 'observationCardinality', type: 'uint16' },
+      { name: 'observationCardinalityNext', type: 'uint16' },
+      { name: 'feeProtocol', type: 'uint32' }, { name: 'unlocked', type: 'bool' },
+    ],
+  },
+  { type: 'function', name: 'liquidity', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint128' }] },
+  { type: 'function', name: 'fee', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint24' }] },
+  { type: 'function', name: 'token0', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'token1', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'address' }] },
+  { type: 'function', name: 'tickSpacing', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'int24' }] },
+] as const;
+
+const factoryAbi = [
+  {
+    type: 'function', name: 'getPool', stateMutability: 'view',
+    inputs: [{ name: 'tokenA', type: 'address' }, { name: 'tokenB', type: 'address' }, { name: 'fee', type: 'uint24' }],
+    outputs: [{ name: 'pool', type: 'address' }],
+  },
+] as const;
+```
+
+## Path Encoding (Multi-Hop)
+
+The `path` field in `ExactInputParams` / `ExactOutputParams`:
+
+```
+exactInput:  tokenIn (20 bytes) + fee (3 bytes) + tokenOut (20 bytes) [+ fee + next ...]
+exactOutput: tokenOut (20 bytes) + fee (3 bytes) + tokenIn (20 bytes) (reversed)
+```
+
+## Common Pitfalls
+
+- **Fee tier 2500 not 3000**: PancakeSwap uses 0.25% (2500) where Uniswap uses 0.30% (3000). Most liquid pairs use MEDIUM (2500).
+- **Two router contracts**: SmartRouter (`0x13f4...`) is recommended. Periphery SwapRouter (`0x1b81...`) is v3-only with deadline in structs.
+- **SmartRouter deadline**: Wrap swap calls in `multicall(deadline, [encodedSwapCall])` — the swap structs themselves have no deadline.
+- **QuoterV2 is not view**: Call with `eth_call` / `callStatic`, never in a transaction.
+- **`refundETH()`**: Must call at the end of all ETH swaps via router to refund excess ETH.
+- **Callback name**: `pancakeV3SwapCallback` not `uniswapV3SwapCallback`.
+- **Sepolia**: V3 core/periphery not officially deployed on Sepolia. Use BSC Testnet or Goerli for V3 testing. Universal Router is on Sepolia.
+
+## GitHub Repos
+
+- [pancakeswap/pancake-v3-contracts](https://github.com/pancakeswap/pancake-v3-contracts) — V3 core, periphery, router, LM pool, MasterChefV3
+- [pancakeswap/pancake-frontend](https://github.com/pancakeswap/pancake-frontend) — Frontend monorepo (all SDK packages under `packages/`)
+- [pancakeswap/smart-router-example](https://github.com/pancakeswap/smart-router-example) — Official routing example code
+
+## Sources
+
+- [PancakeSwap Developer Docs](https://developer.pancakeswap.finance/)
+- [V3 Contract Addresses](https://developer.pancakeswap.finance/contracts/v3/addresses)
+- [Universal Router Addresses](https://developer.pancakeswap.finance/contracts/universal-router/addresses)
+- [V3 FAQ (differences from Uniswap)](https://developer.pancakeswap.finance/contracts/v3/faq)
+- [SmartRouterV3 Docs](https://developer.pancakeswap.finance/contracts/v3/smartrouter)
